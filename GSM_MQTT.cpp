@@ -5,12 +5,15 @@
 */
 #include "GSM_MQTT.h"
 #include "Arduino.h"
+#include "gps.h"
 #include <SoftwareSerial.h>
 #include <avr/pgmspace.h>
 extern uint8_t GSM_Response;
 
 extern String MQTT_HOST;
 extern String MQTT_PORT;
+
+extern GPSGSM gps;
 
 extern GSM_MQTT MQTT;
 uint8_t GSM_Response = 0;
@@ -23,14 +26,20 @@ GSM_MQTT::GSM_MQTT(unsigned long KeepAlive)
   _KeepAliveTimeOut = KeepAlive;
 }
 
-void GSM_MQTT::begin(void)
+void GSM_MQTT::gsmOn(void)
 {
   Serial.begin(9600);
   Serial1.begin(2400);
   Serial1.write("AT\r\n");
   delay(1000);
-  _tcpInit();
 }
+
+void GSM_MQTT::begin(){
+  MQTT.PUB_SENT = false;
+  _tcpInit();
+  processing();
+}
+
 char GSM_MQTT::_sendAT(char *command, unsigned long waitms)
 {
   unsigned long PrevMillis = millis();
@@ -296,8 +305,12 @@ void GSM_MQTT::publish(char DUP, char Qos, char RETAIN, unsigned int MessageID, 
     Serial1.print(char(MessageID / 256));
     Serial1.print(char(MessageID % 256));
   }
+  
   Serial.println("Cheguei pra imprimir a mensagem");
+  MQTT.PUB_SENT = true;
   Serial1.print(Message);
+  disconnect();
+  TCP_Flag = false;
 }
 void GSM_MQTT::publishACK(unsigned int MessageID)
 {
@@ -637,6 +650,11 @@ bool GSM_MQTT::available(void)
 {
   return MQTT_Flag;
 }
+
+bool GSM_MQTT::publishSent(void){
+  return MQTT.PUB_SENT;
+}
+
 void serialEvent1()
 {
 
@@ -798,6 +816,7 @@ void serialEvent1()
           }
           else if (ReceivedMessageType == PUBLISH)
           {
+            MQTT.PUB_SENT = true;
             uint32_t TopicLength = (MQTT.inputString[0]) * 256 + (MQTT.inputString[1]);
             Serial.print("Topic : '");
             MQTT.PublishIndex = 0;

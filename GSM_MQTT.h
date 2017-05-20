@@ -64,6 +64,7 @@ class GSM_MQTT
   public:
     volatile bool TCP_Flag = false;
     volatile char GSM_ReplyFlag;
+    volatile bool PUB_SENT = false;
     char reply[10];
     volatile bool pingFlag = false;
     volatile char tcpATerrorcount = 0;
@@ -78,11 +79,13 @@ class GSM_MQTT
     volatile char modemStatus = 0;
     volatile uint32_t index = 0;
     volatile uint32_t length = 0, lengthLocal = 0;
-
+    
     char inputString[UART_BUFFER_LENGTH]; 
 
     GSM_MQTT(unsigned long KeepAlive);
+    void gsmOn(void);
     void begin(void);
+    boolean publishSent();
     void connect(char *ClientIdentifier, char UserNameFlag, char PasswordFlag, char *UserName, char *Password, char CleanSession, char WillFlag, char WillQoS, char WillRetain, char *WillTopic, char *WillMessage);
     void publish(char DUP, char Qos, char RETAIN, unsigned int MessageID, char *Topic, char *Message);
     void subscribe(char DUP, unsigned int MessageID, char *SubTopic, char SubQoS);
